@@ -1,0 +1,4 @@
+{
+    "enabledPlugins": ["hello.plugin.js"]
+  }
+  
