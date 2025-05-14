@@ -1,0 +1,170 @@
+/**
+ * @name PastelCuteTheme
+ * @version 1.0.0
+ * @description A minimal and cute pastel theme for Discord
+ * @author FlexCord Team
+ */
+
+/* CSS Variables for easy customization */
+:root {
+  /* Pastel colors palette */
+  --pastel-pink: #FFD1DC;
+  --pastel-lavender: #E6E6FA;
+  --pastel-mint: #C7FFD8;
+  --pastel-blue: #B5EAEA;
+  --pastel-yellow: #FFF9C4;
+  
+  /* Main colors */
+  --background-primary: var(--pastel-lavender);
+  --background-secondary: #F8F8FF;
+  --background-tertiary: white;
+  --text-normal: #6A6A6A;
+  --text-muted: #9C9C9C;
+  --text-link: #9FA9FF;
+  --brand-color: #A79AFF;
+  --brand-color-hover: #9384FF;
+}
+
+/* Main background */
+.app-2rEoOp {
+  background-color: var(--background-primary) !important;
+}
+
+/* Sidebar background */
+.sidebar-2K8pFh {
+  background-color: var(--background-secondary) !important;
+  border-radius: 12px !important;
+  margin: 8px !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Chat background */
+.chat-3bRxxu {
+  background-color: var(--background-secondary) !important;
+  border-radius: 12px !important;
+  margin: 8px !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Message blocks - cute rounded bubbles */
+.message-2qnXI6 {
+  background-color: white !important;
+  border-radius: 18px !important;
+  margin: 8px 0 !important;
+  padding: 10px 15px !important;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03) !important;
+  transition: all 0.2s ease !important;
+}
+
+.message-2qnXI6:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Channel list */
+.channel-2QD9_O {
+  background-color: var(--background-tertiary) !important;
+  border-radius: 10px !important;
+  margin: 4px 0 !important;
+  transition: all 0.2s ease !important;
+}
+
+.channel-2QD9_O:hover {
+  background-color: var(--pastel-mint) !important;
+  transform: translateX(3px) !important;
+}
+
+/* Server list */
+.guilds-1SWlCJ {
+  background-color: var(--background-secondary) !important;
+  border-radius: 12px !important;
+  margin: 8px !important;
+}
+
+/* Make servers circular with pastel borders */
+.listItem-3SmSlK {
+  border-radius: 50% !important;
+  margin: 8px 0 !important;
+  transition: all 0.3s ease !important;
+}
+
+.wrapper-28eC3z {
+  border: 3px solid var(--pastel-pink) !important;
+  border-radius: 50% !important;
+  transition: all 0.3s ease !important;
+}
+
+.wrapper-28eC3z:hover {
+  border-color: var(--pastel-mint) !important;
+  transform: scale(1.05) !important;
+}
+
+/* Make buttons cute */
+.button-1YfofN {
+  background-color: var(--pastel-blue) !important;
+  border-radius: 12px !important;
+  padding: 8px 16px !important;
+  transition: all 0.2s ease !important;
+}
+
+.button-1YfofN:hover {
+  background-color: var(--pastel-pink) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* Make links and highlights cute */
+.link-1IoFq-, .wrapper-3WhCwL {
+  color: var(--brand-color) !important;
+  transition: all 0.2s ease !important;
+}
+
+.link-1IoFq-:hover, .wrapper-3WhCwL:hover {
+  color: var(--brand-color-hover) !important;
+  text-decoration: none !important;
+  background-color: var(--pastel-yellow) !important;
+  border-radius: 4px !important;
+  padding: 0 4px !important;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 10px !important;
+}
+
+::-webkit-scrollbar-track {
+  background-color: transparent !important;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--pastel-pink) !important;
+  border-radius: 10px !important;
+  border: 3px solid var(--background-primary) !important;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--pastel-blue) !important;
+}
+
+/* Add cute stars to headers */
+.title-31SJ6t::before {
+  content: "★ ";
+  color: var(--pastel-pink);
+}
+
+.title-31SJ6t::after {
+  content: " ★";
+  color: var(--pastel-pink);
+}
+
+/* Round input fields */
+.input-2g-os5 {
+  border-radius: 12px !important;
+  background-color: white !important;
+  border: 2px solid var(--pastel-lavender) !important;
+  transition: all 0.2s ease !important;
+}
+
+.input-2g-os5:focus {
+  border-color: var(--pastel-blue) !important;
+  box-shadow: 0 0 5px var(--pastel-blue) !important;
+} 

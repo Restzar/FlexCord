@@ -1,0 +1,3 @@
+{
+  "enabledPlugins": ["hello.plugin.js", "api-demo.plugin.js"]
+} 

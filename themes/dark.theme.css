@@ -1,0 +1,76 @@
+/**
+ * @name DarkTheme
+ * @version 1.0.0
+ * @description A clean dark theme for Discord
+ * @author FlexCord Team
+ */
+
+/* Main background darkening */
+.app-2rEoOp {
+  background-color: #1a1a1a !important;
+}
+
+/* Sidebar background */
+.sidebar-2K8pFh {
+  background-color: #0f0f0f !important;
+}
+
+/* Chat background */
+.chat-3bRxxu {
+  background-color: #1e1e1e !important;
+}
+
+/* Message blocks */
+.message-2qnXI6 {
+  background-color: rgba(0, 0, 0, 0.3) !important;
+  border-radius: 8px !important;
+  margin: 8px 0 !important;
+  padding: 8px !important;
+}
+
+/* Channel list */
+.channel-2QD9_O {
+  background-color: #121212 !important;
+  border-radius: 6px !important;
+  margin: 2px 0 !important;
+}
+
+/* Server list */
+.guilds-1SWlCJ {
+  background-color: #0a0a0a !important;
+}
+
+/* Make buttons more visible */
+.button-1YfofN {
+  background-color: #2c2c2c !important;
+  border-radius: 5px !important;
+}
+
+/* Accent color */
+:root {
+  --brand-color: #5865f2;
+  --brand-color-hover: #4752c4;
+}
+
+/* Make links and highlights use the accent color */
+.link-1IoFq-, .wrapper-3WhCwL {
+  color: var(--brand-color) !important;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px !important;
+}
+
+::-webkit-scrollbar-track {
+  background-color: transparent !important;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #3a3a3a !important;
+  border-radius: 4px !important;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #4a4a4a !important;
+}

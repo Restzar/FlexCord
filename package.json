@@ -1,4 +1,17 @@
 {
+  "name": "flexcord",
+  "version": "1.0.0",
+  "description": "The ultimate plugin-based Discord mod",
+  "main": "installer.js",
+  "scripts": {
+    "install": "node installer.js"
+  },
+  "author": "FlexCord Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/FlexCord"
+  },
   "dependencies": {
     "asar": "^3.2.0"
   }
