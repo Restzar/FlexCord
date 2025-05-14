@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "FlexCord",
+  "version": "1.0.0",
+  "description": "The ultimate plugin-based Discord modification for Chrome",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.discord.com/*"],
+      "js": ["content-scripts/injector.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["content-scripts/*", "plugins/*", "themes/*"],
+      "matches": ["*://*.discord.com/*"]
+    }
+  ],
+  "permissions": [
+    "storage",
+    "scripting"
+  ],
+  "host_permissions": [
+    "*://*.discord.com/*"
+  ]
+}
