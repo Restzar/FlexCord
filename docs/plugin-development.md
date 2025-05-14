@@ -11,7 +11,7 @@ FlexCord plugins are JavaScript files that export a module with specific lifecyc
  * @name MyPlugin
  * @version 1.0.0
  * @description What my plugin does
- * @author Your Name
+ * @author FlexCord
  */
 
 module.exports = {

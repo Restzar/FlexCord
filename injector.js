@@ -122,6 +122,7 @@ function loadPlugins() {
     }
   } catch (e) {
     console.error("[FlexCord] Failed to read settings.json:", e);
+    FlexCordAPI.events._emit('configReadError', { file: configPath, error: e });
   }
 
   // Read all plugins from directory
@@ -129,55 +130,79 @@ function loadPlugins() {
     fs.readdirSync(pluginDir).forEach(file => {
       if (!file.endsWith('.plugin.js')) return;
       
+      const pluginPath = path.join(pluginDir, file);
+      let plugin;
+      let pluginLogger;
+
       try {
-        // Load plugin module
-        const pluginPath = path.join(pluginDir, file);
         // Clear cache to allow reloading
         delete require.cache[require.resolve(pluginPath)];
-        const plugin = require(pluginPath);
+        plugin = require(pluginPath);
         
         // Store loaded plugin
         loadedPlugins[file] = plugin;
         
         // Create plugin-specific logger
-        const pluginLogger = FlexCordAPI.logger.createPluginLogger(plugin.meta?.name || file);
+        pluginLogger = FlexCordAPI.logger.createPluginLogger(plugin.meta?.name || file);
         
         // Add API reference to plugin
         plugin.api = FlexCordAPI;
         plugin.logger = pluginLogger;
-        
-        // Call load event
-        if (typeof plugin.onLoad === 'function') {
-          try {
-            plugin.onLoad();
-          } catch (e) {
-            pluginLogger.error('Error in onLoad', e);
-          }
-        }
-        
-        // Call enable event if plugin is enabled
-        if (enabledPlugins.includes(file) && typeof plugin.onEnable === 'function') {
-          try {
-            plugin.onEnable();
-          } catch (e) {
-            pluginLogger.error('Error in onEnable', e);
-          }
-        }
-        
-        // Emit plugin loaded event
-        FlexCordAPI.events._emit('pluginLoaded', {
-          id: file,
-          name: plugin.meta?.name || file,
-          plugin: plugin
-        });
-        
-        pluginLogger.log('Plugin loaded');
+
       } catch (e) {
-        console.error(`[FlexCord] Plugin error: ${file}`, e);
+        console.error(`[FlexCord] Plugin load error (require): ${file}`, e);
+        FlexCordAPI.events._emit('pluginLoadFailed', {
+          id: file,
+          error: e,
+          reason: 'Plugin file could not be loaded/required.'
+        });
+        return; // Skip this plugin if require fails
       }
+        
+      // Call load event
+      if (typeof plugin.onLoad === 'function') {
+        try {
+          plugin.onLoad();
+        } catch (e) {
+          pluginLogger.error('Error in onLoad', e);
+          FlexCordAPI.events._emit('pluginOnLoadFailed', {
+            id: file,
+            name: plugin.meta?.name || file,
+            error: e
+          });
+        }
+      }
+      
+      // Call enable event if plugin is enabled
+      if (enabledPlugins.includes(file) && typeof plugin.onEnable === 'function') {
+        try {
+          plugin.onEnable();
+          FlexCordAPI.events._emit('pluginEnabled', {
+            id: file,
+            name: plugin.meta?.name || file
+          });
+        } catch (e) {
+          pluginLogger.error('Error in onEnable', e);
+          FlexCordAPI.events._emit('pluginEnableFailed', {
+            id: file,
+            name: plugin.meta?.name || file,
+            error: e
+          });
+        }
+      }
+      
+      // Emit plugin loaded event (signifies successful require and meta setup)
+      FlexCordAPI.events._emit('pluginLoaded', {
+        id: file,
+        name: plugin.meta?.name || file,
+        plugin: plugin
+      });
+      
+      pluginLogger.log('Plugin processed'); // Changed from 'Plugin loaded' to 'Plugin processed'
     });
   } catch (e) {
     console.error("[FlexCord] Error reading plugin directory:", e);
+    FlexCordAPI.events._emit('pluginDirectoryReadError', { directory: pluginDir, error: e });
   }
 }
 
@@ -193,6 +218,7 @@ function loadThemes() {
       }
     } catch (e) {
       console.error("[FlexCord] Failed to read active theme from config:", e);
+      FlexCordAPI.events._emit('themeConfigReadError', { file: configPath, error: e });
     }
     
     if (!activeThemeName) return;
@@ -208,12 +234,18 @@ function loadThemes() {
         document.head.appendChild(style);
         activeTheme = activeThemeName;
         console.log("[FlexCord] Loaded theme:", activeThemeName);
+        FlexCordAPI.events._emit('themeApplied', { name: activeThemeName });
+      } else {
+        console.error(`[FlexCord] Theme file not found: ${activeThemeName}`);
+        FlexCordAPI.events._emit('themeLoadFailed', { name: activeThemeName, error: new Error('Theme file not found') });
       }
     } catch (e) {
       console.error("[FlexCord] Error applying theme:", e);
+      FlexCordAPI.events._emit('themeLoadFailed', { name: activeThemeName, error: e });
     }
   } catch (e) {
     console.error("[FlexCord] Error in loadThemes:", e);
+    FlexCordAPI.events._emit('themeSystemError', { error: e });
   }
 }
 
@@ -228,37 +260,53 @@ function updateThemeConfig(themeName) {
       }
     } catch (e) {
       console.error("[FlexCord] Couldn't load settings for theme update, using default.");
+      FlexCordAPI.events._emit('themeConfigReadError', { file: configPath, error: e, context: 'updateThemeConfig' });
     }
     
     // Remove current theme if exists
     const currentThemeElement = document.getElementById("flexcord-theme");
     if (currentThemeElement) {
       currentThemeElement.remove();
+      if (activeTheme) {
+        FlexCordAPI.events._emit('themeRemoved', { name: activeTheme });
+      }
     }
     
     if (themeName) {
       // Apply new theme
       try {
         const themePath = path.join(themeDir, themeName);
-        const css = fs.readFileSync(themePath, "utf-8");
-        const style = document.createElement("style");
-        style.id = "flexcord-theme";
-        style.innerText = css;
-        document.head.appendChild(style);
-        activeTheme = themeName;
+        if (!fs.existsSync(themePath)) {
+          console.error(`[FlexCord] Theme file not found for applying: ${themeName}`);
+          FlexCordAPI.events._emit('themeApplyFailed', { name: themeName, error: new Error('Theme file not found') });
+          activeTheme = null; // Ensure activeTheme is cleared if new one fails
+        } else {
+          const css = fs.readFileSync(themePath, "utf-8");
+          const style = document.createElement("style");
+          style.id = "flexcord-theme";
+          style.innerText = css;
+          document.head.appendChild(style);
+          activeTheme = themeName;
+          FlexCordAPI.events._emit('themeApplied', { name: themeName });
+        }
       } catch (e) {
         console.error("[FlexCord] Error applying new theme:", e);
+        FlexCordAPI.events._emit('themeApplyFailed', { name: themeName, error: e });
+        activeTheme = null; // Ensure activeTheme is cleared if new one fails
       }
     } else {
       activeTheme = null;
+      // Event for 'no theme' or 'theme explicitly removed' was handled above if currentThemeElement existed
+      // If no theme was active and themeName is null, no specific event needed here for removal.
     }
     
     // Update config
-    config.activeTheme = themeName;
+    config.activeTheme = activeTheme; // Use the potentially updated activeTheme value
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-    console.log(`[FlexCord] Theme ${themeName ? `"${themeName}" applied` : "removed"}.`);
+    console.log(`[FlexCord] Theme ${activeTheme ? `"${activeTheme}" applied` : "removed/cleared"}.`);
   } catch (e) {
-    console.error("[FlexCord] Error updating theme:", e);
+    console.error("[FlexCord] Error updating theme config:", e);
+    FlexCordAPI.events._emit('themeConfigWriteError', { file: configPath, error: e });
   }
 }
 
@@ -272,32 +320,54 @@ function updatePluginConfig(pluginName, enabled) {
     }
   } catch (e) {
     console.error("[FlexCord] Couldn't load settings, using default.");
+    FlexCordAPI.events._emit('pluginConfigReadError', { file: configPath, error: e, context: 'updatePluginConfig' });
   }
 
   const wasEnabled = config.enabledPlugins.includes(pluginName);
+  const plugin = loadedPlugins[pluginName];
   
   if (enabled && !wasEnabled) {
     config.enabledPlugins.push(pluginName);
     
     // Call enable event
-    const plugin = loadedPlugins[pluginName];
     if (plugin && typeof plugin.onEnable === 'function') {
       try {
         plugin.onEnable();
+        FlexCordAPI.events._emit('pluginEnabled', {
+          id: pluginName,
+          name: plugin.meta?.name || pluginName
+        });
       } catch (e) {
         console.error(`[FlexCord] Error enabling plugin ${pluginName}:`, e);
+        FlexCordAPI.events._emit('pluginEnableFailed', {
+          id: pluginName,
+          name: plugin.meta?.name || pluginName,
+          error: e
+        });
+        // Optionally, revert enabling in config if onEnable fails critically
+        // config.enabledPlugins = config.enabledPlugins.filter(p => p !== pluginName);
       }
     }
   } else if (!enabled && wasEnabled) {
     config.enabledPlugins = config.enabledPlugins.filter(p => p !== pluginName);
     
     // Call disable event
-    const plugin = loadedPlugins[pluginName];
     if (plugin && typeof plugin.onDisable === 'function') {
       try {
         plugin.onDisable();
+        FlexCordAPI.events._emit('pluginDisabled', {
+          id: pluginName,
+          name: plugin.meta?.name || pluginName
+        });
       } catch (e) {
         console.error(`[FlexCord] Error disabling plugin ${pluginName}:`, e);
+        FlexCordAPI.events._emit('pluginDisableFailed', {
+          id: pluginName,
+          name: plugin.meta?.name || pluginName,
+          error: e
+        });
+        // Optionally, revert disabling in config if onDisable fails critically
+        // config.enabledPlugins.push(pluginName);
       }
     }
   }
@@ -305,8 +375,10 @@ function updatePluginConfig(pluginName, enabled) {
   try {
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
     console.log(`[FlexCord] Plugin "${pluginName}" ${enabled ? "enabled" : "disabled"}.`);
+    FlexCordAPI.events._emit('pluginConfigUpdated', { name: pluginName, enabled: enabled });
   } catch (e) {
     console.error("[FlexCord] Error saving settings:", e);
+    FlexCordAPI.events._emit('pluginConfigWriteError', { file: configPath, error: e });
   }
 }
 

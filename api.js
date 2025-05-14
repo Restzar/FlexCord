@@ -9,9 +9,10 @@ const path = require('path');
 // Main API object
 const FlexCordAPI = {
   /**
-   * API version - increment when making breaking changes
+   * API version history
+   * 1.0.0 - Initial release
+   * 1.1.0 - Added reactions, presence, and guild features
    */
-  version: '1.0.0',
   
   /**
    * Internal references and state
@@ -23,6 +24,11 @@ const FlexCordAPI = {
     dataFolder: null,
     initialized: false
   },
+  
+  /**
+   * API version - increment when making breaking changes
+   */
+  version: '1.1.0', // Updated for reactions, presence, and guild features
   
   /**
    * Initialize the API
@@ -121,6 +127,21 @@ const FlexCordAPI = {
         // Check for ChannelStore
         if (moduleExports.default.getChannel && moduleExports.default.getChannels) {
           this._internal.discordModules.ChannelStore = moduleExports.default;
+        }
+        
+        // Check for ReactionModule
+        if (moduleExports.default.addReaction && moduleExports.default.removeReaction) {
+          this._internal.discordModules.ReactionModule = moduleExports.default;
+        }
+        
+        // Check for GuildStore
+        if (moduleExports.default.getGuild && moduleExports.default.getGuilds) {
+          this._internal.discordModules.GuildStore = moduleExports.default;
+        }
+        
+        // Check for PresenceStore
+        if (moduleExports.default.getPresence || moduleExports.default.getState) {
+          this._internal.discordModules.PresenceStore = moduleExports.default;
         }
       }
     } catch (e) {
@@ -413,6 +434,466 @@ const FlexCordAPI = {
           reject(e);
         }
       });
+    },
+    
+    /**
+     * Delete a message
+     * @param {string} channelId - Channel ID
+     * @param {string} messageId - Message ID
+     * @returns {Promise<void>}
+     */
+    deleteMessage: function(channelId, messageId) {
+      const MessageActions = FlexCordAPI._internal.discordModules.MessageActions;
+      
+      if (!MessageActions) {
+        FlexCordAPI.logger.error('MessageActions module not found');
+        return Promise.reject(new Error('MessageActions module not found'));
+      }
+      
+      return new Promise((resolve, reject) => {
+        try {
+          MessageActions.deleteMessage(channelId, messageId)
+            .then(resolve)
+            .catch(reject);
+        } catch (e) {
+          reject(e);
+        }
+      });
+    }
+  },
+  
+  /**
+   * Discord reaction utilities
+   */
+  reactions: {
+    /**
+     * Add a reaction to a message
+     * @param {string} channelId - Channel ID
+     * @param {string} messageId - Message ID
+     * @param {string} emoji - Emoji to react with (unicode or custom emoji ID)
+     * @returns {Promise<Object>} Reaction object
+     */
+    addReaction: function(channelId, messageId, emoji) {
+      const ReactionModule = FlexCordAPI._internal.discordModules.ReactionModule;
+      
+      if (!ReactionModule) {
+        FlexCordAPI.logger.error('ReactionModule not found');
+        return Promise.reject(new Error('ReactionModule not found'));
+      }
+      
+      return new Promise((resolve, reject) => {
+        try {
+          ReactionModule.addReaction(channelId, messageId, emoji)
+            .then(resolve)
+            .catch(reject);
+        } catch (e) {
+          reject(e);
+        }
+      });
+    },
+    
+    /**
+     * Remove a reaction from a message
+     * @param {string} channelId - Channel ID
+     * @param {string} messageId - Message ID
+     * @param {string} emoji - Emoji to remove (unicode or custom emoji ID)
+     * @returns {Promise<void>}
+     */
+    removeReaction: function(channelId, messageId, emoji) {
+      const ReactionModule = FlexCordAPI._internal.discordModules.ReactionModule;
+      
+      if (!ReactionModule) {
+        FlexCordAPI.logger.error('ReactionModule not found');
+        return Promise.reject(new Error('ReactionModule not found'));
+      }
+      
+      return new Promise((resolve, reject) => {
+        try {
+          ReactionModule.removeReaction(channelId, messageId, emoji)
+            .then(resolve)
+            .catch(reject);
+        } catch (e) {
+          reject(e);
+        }
+      });
+    },
+    
+    /**
+     * Get all reactions on a message
+     * @param {string} channelId - Channel ID
+     * @param {string} messageId - Message ID
+     * @returns {Promise<Object>} Reaction data
+     */
+    getReactions: function(channelId, messageId) {
+      const ReactionModule = FlexCordAPI._internal.discordModules.ReactionModule;
+      
+      if (!ReactionModule) {
+        FlexCordAPI.logger.error('ReactionModule not found');
+        return Promise.reject(new Error('ReactionModule not found'));
+      }
+      
+      return new Promise((resolve, reject) => {
+        try {
+          ReactionModule.getReactions(channelId, messageId)
+            .then(resolve)
+            .catch(reject);
+        } catch (e) {
+          reject(e);
+        }
+      });
+    }
+  },
+  
+  /**
+   * Guild utilities for managing Discord servers
+   */
+  guilds: {
+    /**
+     * Get information about a guild
+     * @param {string} guildId - Guild ID
+     * @returns {Promise<Object>} Guild object
+     */
+    getGuild: function(guildId) {
+      const GuildStore = FlexCordAPI._internal.discordModules.GuildStore;
+      
+      if (!GuildStore) {
+        FlexCordAPI.logger.error('GuildStore module not found');
+        return Promise.reject(new Error('GuildStore module not found'));
+      }
+      
+      return new Promise((resolve, reject) => {
+        try {
+          const guild = GuildStore.getGuild(guildId);
+          resolve(guild);
+        } catch (e) {
+          reject(e);
+        }
+      });
+    },
+    
+    /**
+     * Get all guilds the user is a member of
+     * @returns {Promise<Object>} Object containing guild objects
+     */
+    getGuilds: function() {
+      const GuildStore = FlexCordAPI._internal.discordModules.GuildStore;
+      
+      if (!GuildStore) {
+        FlexCordAPI.logger.error('GuildStore module not found');
+        return Promise.reject(new Error('GuildStore module not found'));
+      }
+      
+      return new Promise((resolve, reject) => {
+        try {
+          const guilds = GuildStore.getGuilds();
+          resolve(guilds);
+        } catch (e) {
+          reject(e);
+        }
+      });
+    },
+    
+    /**
+     * Get members of a guild
+     * @param {string} guildId - Guild ID
+     * @returns {Promise<Array>} Array of member objects
+     */
+    getMembers: function(guildId) {
+      const GuildStore = FlexCordAPI._internal.discordModules.GuildStore;
+      
+      if (!GuildStore) {
+        FlexCordAPI.logger.error('GuildStore module not found');
+        return Promise.reject(new Error('GuildStore module not found'));
+      }
+      
+      return new Promise((resolve, reject) => {
+        try {
+          // Different Discord versions might have different methods
+          if (typeof GuildStore.getMembers === 'function') {
+            const members = GuildStore.getMembers(guildId);
+            resolve(members);
+          } else if (typeof GuildStore.getMemberIds === 'function') {
+            const memberIds = GuildStore.getMemberIds(guildId);
+            const UserStore = FlexCordAPI._internal.discordModules.UserStore;
+            
+            if (!UserStore) {
+              reject(new Error('UserStore module not found'));
+              return;
+            }
+            
+            const members = memberIds.map(id => UserStore.getUser(id)).filter(Boolean);
+            resolve(members);
+          } else {
+            reject(new Error('No method available to get guild members'));
+          }
+        } catch (e) {
+          reject(e);
+        }
+      });
+    },
+    
+    /**
+     * Get channels in a guild
+     * @param {string} guildId - Guild ID
+     * @returns {Promise<Array>} Array of channel objects
+     */
+    getChannels: function(guildId) {
+      const ChannelStore = FlexCordAPI._internal.discordModules.ChannelStore;
+      
+      if (!ChannelStore) {
+        FlexCordAPI.logger.error('ChannelStore module not found');
+        return Promise.reject(new Error('ChannelStore module not found'));
+      }
+      
+      return new Promise((resolve, reject) => {
+        try {
+          const channels = ChannelStore.getGuildChannels ? 
+            ChannelStore.getGuildChannels(guildId) : 
+            Object.values(ChannelStore.getChannels()).filter(c => c.guild_id === guildId);
+          
+          resolve(channels);
+        } catch (e) {
+          reject(e);
+        }
+      });
+    }
+  },
+  
+  /**
+   * Presence utilities for managing user status
+   */
+  presence: {
+    /**
+     * Get the presence (status) of a user
+     * @param {string} userId - User ID
+     * @returns {Promise<Object>} Presence object
+     */
+    getPresence: function(userId) {
+      const PresenceStore = FlexCordAPI._internal.discordModules.PresenceStore;
+      
+      if (!PresenceStore) {
+        FlexCordAPI.logger.error('PresenceStore module not found');
+        return Promise.reject(new Error('PresenceStore module not found'));
+      }
+      
+      return new Promise((resolve, reject) => {
+        try {
+          const presence = PresenceStore.getPresence ? 
+            PresenceStore.getPresence(userId) : 
+            PresenceStore.getState ? PresenceStore.getState()[userId] : null;
+          
+          resolve(presence);
+        } catch (e) {
+          reject(e);
+        }
+      });
+    },
+    
+    /**
+     * Get all presences
+     * @returns {Promise<Object>} Object containing all presence data
+     */
+    getAllPresences: function() {
+      const PresenceStore = FlexCordAPI._internal.discordModules.PresenceStore;
+      
+      if (!PresenceStore) {
+        FlexCordAPI.logger.error('PresenceStore module not found');
+        return Promise.reject(new Error('PresenceStore module not found'));
+      }
+      
+      return new Promise((resolve, reject) => {
+        try {
+          const presences = PresenceStore.getState ? 
+            PresenceStore.getState() : 
+            {};
+          
+          resolve(presences);
+        } catch (e) {
+          reject(e);
+        }
+      });
+    },
+    
+    /**
+     * Get the current user's status
+     * @returns {Promise<string>} Status string ('online', 'idle', 'dnd', 'invisible', 'offline')
+     */
+    getStatus: function() {
+      const PresenceStore = FlexCordAPI._internal.discordModules.PresenceStore;
+      const UserStore = FlexCordAPI._internal.discordModules.UserStore;
+      
+      if (!PresenceStore) {
+        FlexCordAPI.logger.error('PresenceStore module not found');
+        return Promise.reject(new Error('PresenceStore module not found'));
+      }
+      
+      if (!UserStore) {
+        FlexCordAPI.logger.error('UserStore module not found');
+        return Promise.reject(new Error('UserStore module not found'));
+      }
+      
+      return new Promise((resolve, reject) => {
+        try {
+          const currentUser = UserStore.getCurrentUser();
+          if (!currentUser) {
+            reject(new Error('Current user not found'));
+            return;
+          }
+          
+          const presence = PresenceStore.getPresence ? 
+            PresenceStore.getPresence(currentUser.id) : 
+            PresenceStore.getState ? PresenceStore.getState()[currentUser.id] : null;
+          
+          resolve(presence ? presence.status : 'offline');
+        } catch (e) {
+          reject(e);
+        }
+      });
+    },
+    
+    /**
+     * Set the current user's status
+     * @param {string} status - Status to set ('online', 'idle', 'dnd', 'invisible')
+     * @returns {Promise<void>}
+     */
+    setStatus: function(status) {
+      // This requires access to Discord's internal status setter
+      // Implementation depends on Discord's current structure
+      
+      return new Promise((resolve, reject) => {
+        try {
+          // Try to find the status setter in Discord's webpack modules
+          const webpackModules = window.webpackChunkdiscord_app.push([
+            [Math.random()], {}, (req) => {
+              for (const m in req.c) {
+                if (req.c[m]?.exports?.default?.setStatus) {
+                  return req.c[m].exports.default;
+                }
+              }
+            }
+          ]);
+          
+          if (webpackModules && typeof webpackModules.setStatus === 'function') {
+            webpackModules.setStatus(status);
+            resolve();
+          } else {
+            reject(new Error('Status setter not found'));
+          }
+        } catch (e) {
+          reject(e);
+        }
+      });
+    }
+  },
+      });
+    },
+    
+    /**
+     * Get all reactions on a message
+     * @param {string} channelId - Channel ID
+     * @param {string} messageId - Message ID
+     * @returns {Promise<Object>} Reaction data
+     */
+    getReactions: function(channelId, messageId) {
+      const ReactionModule = FlexCordAPI._internal.discordModules.ReactionModule;
+      
+      if (!ReactionModule) {
+        FlexCordAPI.logger.error('ReactionModule not found');
+        return Promise.reject(new Error('ReactionModule not found'));
+      }
+      
+      return new Promise((resolve, reject) => {
+        try {
+          ReactionModule.getReactions(channelId, messageId)
+            .then(resolve)
+            .catch(reject);
+        } catch (e) {
+          reject(e);
+        }
+      });
+    }
+  }
+  },
+  
+  /**
+   * Discord reaction utilities
+   */
+  reactions: {
+    /**
+     * Add a reaction to a message
+     * @param {string} channelId - Channel ID
+     * @param {string} messageId - Message ID
+     * @param {string} emoji - Emoji to react with (unicode or custom emoji ID)
+     * @returns {Promise<Object>} Reaction object
+     */
+    addReaction: function(channelId, messageId, emoji) {
+      const ReactionModule = FlexCordAPI._internal.discordModules.ReactionModule;
+      
+      if (!ReactionModule) {
+        FlexCordAPI.logger.error('ReactionModule not found');
+        return Promise.reject(new Error('ReactionModule not found'));
+      }
+      
+      return new Promise((resolve, reject) => {
+        try {
+          ReactionModule.addReaction(channelId, messageId, emoji)
+            .then(resolve)
+            .catch(reject);
+        } catch (e) {
+          reject(e);
+        }
+      });
+    },
+    
+    /**
+     * Remove a reaction from a message
+     * @param {string} channelId - Channel ID
+     * @param {string} messageId - Message ID
+     * @param {string} emoji - Emoji to remove (unicode or custom emoji ID)
+     * @returns {Promise<void>}
+     */
+    removeReaction: function(channelId, messageId, emoji) {
+      const ReactionModule = FlexCordAPI._internal.discordModules.ReactionModule;
+      
+      if (!ReactionModule) {
+        FlexCordAPI.logger.error('ReactionModule not found');
+        return Promise.reject(new Error('ReactionModule not found'));
+      }
+      
+      return new Promise((resolve, reject) => {
+        try {
+          ReactionModule.removeReaction(channelId, messageId, emoji)
+            .then(resolve)
+            .catch(reject);
+        } catch (e) {
+          reject(e);
+        }
+      });
+    },
+    
+    /**
+     * Get all reactions on a message
+     * @param {string} channelId - Channel ID
+     * @param {string} messageId - Message ID
+     * @returns {Promise<Object>} Reaction data
+     */
+    getReactions: function(channelId, messageId) {
+      const ReactionModule = FlexCordAPI._internal.discordModules.ReactionModule;
+      
+      if (!ReactionModule) {
+        FlexCordAPI.logger.error('ReactionModule not found');
+        return Promise.reject(new Error('ReactionModule not found'));
+      }
+      
+      return new Promise((resolve, reject) => {
+        try {
+          ReactionModule.getReactions(channelId, messageId)
+            .then(resolve)
+            .catch(reject);
+        } catch (e) {
+          reject(e);
+        }
+      });
     }
   },
   
@@ -530,6 +1011,217 @@ const FlexCordAPI = {
       }
       
       return ChannelStore.getChannel(channelId);
+    },
+    
+    /**
+     * Get all channels for a guild
+     * @param {string} guildId - Guild ID
+     * @returns {Array|null} Array of channel objects
+     */
+    getGuildChannels: function(guildId) {
+      const ChannelStore = FlexCordAPI._internal.discordModules.ChannelStore;
+      
+      if (!ChannelStore) {
+        FlexCordAPI.logger.error('ChannelStore module not found');
+        return null;
+      }
+      
+      return ChannelStore.getGuildChannels?.(guildId) || 
+             Object.values(ChannelStore.getChannels()).filter(c => c.guild_id === guildId);
+    }
+  },
+  
+  /**
+   * Guild utilities
+   */
+  guilds: {
+    /**
+     * Get a guild by ID
+     * @param {string} guildId - Guild ID
+     * @returns {Object|null} Guild object
+     */
+    getGuild: function(guildId) {
+      const GuildStore = FlexCordAPI._internal.discordModules.GuildStore;
+      
+      if (!GuildStore) {
+        FlexCordAPI.logger.error('GuildStore module not found');
+        return null;
+      }
+      
+      return GuildStore.getGuild(guildId);
+    },
+    
+    /**
+     * Get all guilds the user is in
+     * @returns {Object|null} Object containing all guilds
+     */
+    getGuilds: function() {
+      const GuildStore = FlexCordAPI._internal.discordModules.GuildStore;
+      
+      if (!GuildStore) {
+        FlexCordAPI.logger.error('GuildStore module not found');
+        return null;
+      }
+      
+      return GuildStore.getGuilds();
+    },
+    
+    /**
+     * Get all members in a guild
+     * @param {string} guildId - Guild ID
+     * @returns {Array|null} Array of member objects
+     */
+    getMembers: function(guildId) {
+      const GuildStore = FlexCordAPI._internal.discordModules.GuildStore;
+      
+      if (!GuildStore || !GuildStore.getMembers) {
+        FlexCordAPI.logger.error('GuildStore.getMembers not found');
+        return null;
+      }
+      
+      return GuildStore.getMembers(guildId);
+    }
+  },
+    
+    /**
+     * Get all channels for a guild
+     * @param {string} guildId - Guild ID
+     * @returns {Array|null} Array of channel objects
+     */
+    getGuildChannels: function(guildId) {
+      const ChannelStore = FlexCordAPI._internal.discordModules.ChannelStore;
+      
+      if (!ChannelStore) {
+        FlexCordAPI.logger.error('ChannelStore module not found');
+        return null;
+      }
+      
+      return ChannelStore.getGuildChannels?.(guildId) || 
+             Object.values(ChannelStore.getChannels()).filter(c => c.guild_id === guildId);
+    }
+  },
+  
+  /**
+   * Guild utilities
+   */
+  guilds: {
+    /**
+     * Get a guild by ID
+     * @param {string} guildId - Guild ID
+     * @returns {Object|null} Guild object
+     */
+    getGuild: function(guildId) {
+      const GuildStore = FlexCordAPI._internal.discordModules.GuildStore;
+      
+      if (!GuildStore) {
+        FlexCordAPI.logger.error('GuildStore module not found');
+        return null;
+      }
+      
+      return GuildStore.getGuild(guildId);
+    },
+    
+    /**
+     * Get all guilds the user is in
+     * @returns {Object|null} Object containing all guilds
+     */
+    getGuilds: function() {
+      const GuildStore = FlexCordAPI._internal.discordModules.GuildStore;
+      
+      if (!GuildStore) {
+        FlexCordAPI.logger.error('GuildStore module not found');
+        return null;
+      }
+      
+      return GuildStore.getGuilds();
+    },
+    
+    /**
+     * Get all members in a guild
+     * @param {string} guildId - Guild ID
+     * @returns {Array|null} Array of member objects
+     */
+    getMembers: function(guildId) {
+      const GuildStore = FlexCordAPI._internal.discordModules.GuildStore;
+      
+      if (!GuildStore || !GuildStore.getMembers) {
+        FlexCordAPI.logger.error('GuildStore.getMembers not found');
+        return null;
+      }
+      
+      return GuildStore.getMembers(guildId);
+    }
+  },
+  
+  /**
+   * Presence utilities
+   */
+  presence: {
+    /**
+     * Get a user's presence (online status)
+     * @param {string} userId - User ID
+     * @returns {Object|null} Presence object
+     */
+    getPresence: function(userId) {
+      const PresenceStore = FlexCordAPI._internal.discordModules.PresenceStore;
+      
+      if (!PresenceStore) {
+        FlexCordAPI.logger.error('PresenceStore module not found');
+        return null;
+      }
+      
+      return PresenceStore.getPresence?.(userId) || 
+             PresenceStore.getState?.()?.presences?.[userId];
+    },
+    
+    /**
+     * Set the current user's status
+     * @param {string} status - Status to set ('online', 'idle', 'dnd', 'invisible')
+     * @returns {Promise<void>}
+     */
+    setStatus: function(status) {
+      const PresenceStore = FlexCordAPI._internal.discordModules.PresenceStore;
+      
+      if (!PresenceStore || !PresenceStore.setStatus) {
+        FlexCordAPI.logger.error('PresenceStore.setStatus not found');
+        return Promise.reject(new Error('PresenceStore.setStatus not found'));
+      }
+      
+      return new Promise((resolve, reject) => {
+        try {
+          PresenceStore.setStatus(status)
+            .then(resolve)
+            .catch(reject);
+        } catch (e) {
+          reject(e);
+        }
+      });
+    },
+    
+    /**
+     * Set a custom status message
+     * @param {Object} options - Custom status options
+     * @param {string} options.text - Status text
+     * @param {string} [options.emoji] - Status emoji (unicode or custom emoji ID)
+     * @returns {Promise<void>}
+     */
+    setCustomStatus: function(options) {
+      const PresenceStore = FlexCordAPI._internal.discordModules.PresenceStore;
+      
+      if (!PresenceStore || !PresenceStore.setCustomStatus) {
+        FlexCordAPI.logger.error('PresenceStore.setCustomStatus not found');
+        return Promise.reject(new Error('PresenceStore.setCustomStatus not found'));
+      }
+      
+      return new Promise((resolve, reject) => {
+        try {
+          PresenceStore.setCustomStatus(options)
+            .then(resolve)
+            .catch(reject);
+        } catch (e) {
+          reject(e);
+        }
+      });
     }
   },
   
@@ -589,8 +1281,80 @@ const FlexCordAPI = {
         }
       });
     }
+  },
+  
+  /**
+   * Presence utilities
+   */
+  presence: {
+    /**
+     * Get a user's presence (online status)
+     * @param {string} userId - User ID
+     * @returns {Object|null} Presence object
+     */
+    getPresence: function(userId) {
+      const PresenceStore = FlexCordAPI._internal.discordModules.PresenceStore;
+      
+      if (!PresenceStore) {
+        FlexCordAPI.logger.error('PresenceStore module not found');
+        return null;
+      }
+      
+      return PresenceStore.getPresence?.(userId) || 
+             PresenceStore.getState?.()?.presences?.[userId];
+    },
+    
+    /**
+     * Set the current user's status
+     * @param {string} status - Status to set ('online', 'idle', 'dnd', 'invisible')
+     * @returns {Promise<void>}
+     */
+    setStatus: function(status) {
+      const PresenceStore = FlexCordAPI._internal.discordModules.PresenceStore;
+      
+      if (!PresenceStore || !PresenceStore.setStatus) {
+        FlexCordAPI.logger.error('PresenceStore.setStatus not found');
+        return Promise.reject(new Error('PresenceStore.setStatus not found'));
+      }
+      
+      return new Promise((resolve, reject) => {
+        try {
+          PresenceStore.setStatus(status)
+            .then(resolve)
+            .catch(reject);
+        } catch (e) {
+          reject(e);
+        }
+      });
+    },
+    
+    /**
+     * Set a custom status message
+     * @param {Object} options - Custom status options
+     * @param {string} options.text - Status text
+     * @param {string} [options.emoji] - Status emoji (unicode or custom emoji ID)
+     * @returns {Promise<void>}
+     */
+    setCustomStatus: function(options) {
+      const PresenceStore = FlexCordAPI._internal.discordModules.PresenceStore;
+      
+      if (!PresenceStore || !PresenceStore.setCustomStatus) {
+        FlexCordAPI.logger.error('PresenceStore.setCustomStatus not found');
+        return Promise.reject(new Error('PresenceStore.setCustomStatus not found'));
+      }
+      
+      return new Promise((resolve, reject) => {
+        try {
+          PresenceStore.setCustomStatus(options)
+            .then(resolve)
+            .catch(reject);
+        } catch (e) {
+          reject(e);
+        }
+      });
+    }
   }
 };
 
 // Export the API for use in plugins
-module.exports = FlexCordAPI; 
+module.exports = FlexCordAPI;
